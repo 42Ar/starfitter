@@ -24,21 +24,22 @@ image_dates = ([(day, h) for h in range(18, 24)] +
 image_input_dir = "fit_images"
 output_data_dir = "fitres_AMS131"
 latlon = (69.662, 18.936)
-fov_x = 0.8
+c_2 = -0.4
+c_3 =  0.62
+fov_x = 0.79
 fov = (fov_x, fov_x*in_size[0]/in_size[1])
 poly_order = 3
 initial_guess = [
-    {"id": 1, "fov": fov, "c_2": 0, "c_3": 0,
-     "az": np.pi*90/180, "alt": np.pi*15/180, "roll": 0},
-    {"id": 2, "fov": fov, "c_2": 0, "c_3": 0,
+    {"id": 1, "fov": fov, "c_2": c_2, "c_3": c_3,
+     "az": np.pi*75/180, "alt": np.pi*15/180, "roll": 0},
+    {"id": 2, "fov": fov, "c_2": c_2, "c_3": c_3,
      "az": np.pi*150/180, "alt": np.pi*17/180, "roll": 0}
 ]
 fitstars = [
-    (1, (2022, 2, 12, 20, 10, 1), 67927, (259, 309)),
-    (1, (2022, 2, 12, 20, 10, 1), 49669, (900, 106)),
-    (1, (2022, 2, 12, 23, 55, 0), 69673, (812, 62)),
-    (1, (2022, 2, 13, 1, 45, 0), 91262, (371, 32)),
-   
+    (1, (2022, 2, 12, 21, 15, 0), 72105, (323, 193)),
+    (1, (2022, 2, 12, 21, 15, 0), 69673, (426, 254)),
+    (1, (2022, 2, 12, 21, 15, 0), 54872, (844, 21)),
+
     (2, (2022, 2, 12, 23, 30, 1), 69673, (103, 91)),
     (2, (2022, 2, 12, 23, 30, 1), 69673, (103, 91)),
     (2, (2022, 2, 12, 23, 30, 1), 57632, (501, 89)),
@@ -76,7 +77,7 @@ second_pass_files = [
 detector_settings = {
     "min_area": 4,
     "match_dist": 20,
-    1: {"region_x": (0, 1), "region_y": (0, 0.6), "filter_size": 7, "threshold": 10},
+    1: {"region_x": (0, 1), "region_y": (0, 0.5), "filter_size": 7, "threshold": 10},
     2: {"region_x": (0, 1), "region_y": (0, 0.6), "filter_size": 7, "threshold": 15}
 }
 cams_to_fit = [1]
@@ -227,7 +228,7 @@ def match_stars(cam, img, datetime, detected_stars):
         if mindist < match_dist**2:
             px, py, name = stars[closest_star]
             del stars[closest_star]
-            result.append((camid, datetime, name, (pdx, pdy)))
+            result.append((cam["id"], datetime, name, (pdx, pdy)))
             if img is not None:
                 cv2.line(img, (pdx, pdy), (px, py), (0, 255, 255), 1)
     return result
@@ -259,8 +260,9 @@ def show(cam, residuals_only=True):
     cv2.namedWindow("preview")
     cv2.moveWindow("preview", 50, 50)
     for day, hour in image_dates:
-        file = f"{year:04d}_{month:02d}_{day:02d}_{hour:02d}_*_{cam['id']}.jpg"
-        files = glob(os.path.join(image_input_dir, file))
+        file = f"{year:04d}_{month:02d}_{day:02d}_{hour:02d}_*_{cam['id']}."
+        files = glob(os.path.join(image_input_dir, file + "jpg"))
+        files += glob(os.path.join(image_input_dir, file + "png"))
         files.sort()
         for file in files:
             if not show_file(cam, file, residuals_only):
@@ -279,35 +281,42 @@ def cam_by_camid(calib_data, camid):
     return next(cam for cam in calib_data if cam["id"] == camid)
 
 
-def params_to_calib_data(params):
-    fov = (params[0], params[0]*in_size[0]/in_size[1])
-    pcnt = max([0, poly_order - 2])
+def params_to_calib_data(params, orig_calib_data, fix_lens_params):
+    p_shared = 0
+    if not fix_lens_params:
+        fov = (params[0], params[0]*in_size[0]/in_size[1])
+        p_shared = 1 + max([poly_order - 1, 0])
     res = []
     for i, camid in enumerate(cams_to_fit):
-        cam = {"id": camid, "fov": fov, "az": params[pcnt*i + 1],
-               "alt": params[pcnt*i + 2], "roll": params[pcnt*i + 3]}
-        for o in range(2, poly_order + 1):
-            cam[f"c_{o}"] = params[pcnt*i + 2 + o]
-        res.append(cam)
+        new_calib = dict(cam_by_camid(orig_calib_data, camid))
+        new_calib["az"] = params[3*i + p_shared]
+        new_calib["alt"] = params[3*i + p_shared + 1]
+        new_calib["roll"] = params[3*i + p_shared + 2]
+        if not fix_lens_params:
+            new_calib["fov"] = fov
+            for o in range(2, poly_order + 1):
+                new_calib[f"c_{o}"] = params[o - 1]
+        res.append(new_calib)
     return res
 
 
-def calib_data_to_params(calib_data):
+def calib_data_to_params(calib_data, fix_lens_params):
     params = []
-    for i, camid in enumerate(cams_to_fit):
+    if not fix_lens_params:
+        cam = cam_by_camid(calib_data, cams_to_fit[0])
+        params.append(cam["fov"][0])
+        for i in range(2, poly_order + 1):
+            params.append(cam[f"c_{i}"])
+    for camid in cams_to_fit:
         cam = cam_by_camid(calib_data, camid)
-        if i == 0:
-            params.append(cam["fov"][0])
         params.append(cam["az"])
         params.append(cam["alt"])
         params.append(cam["roll"])
-        for i in range(2, poly_order + 1):
-            params.append(cam[f"c_{i}"])
     return params
 
 
-def calc_chi2(params, fitstars):
-    calib_data = params_to_calib_data(params)
+def calc_chi2(params, fitstars, fix_lens_params, orig_calib_data):
+    calib_data = params_to_calib_data(params, orig_calib_data, fix_lens_params)
     chi2 = 0
     for camid, time, star, (px, py) in fitstars:
         if camid not in cams_to_fit:
@@ -319,10 +328,12 @@ def calc_chi2(params, fitstars):
     return chi2
 
 
-def do_fit(fitstars):
-    fitres = minimize(calc_chi2, calib_data_to_params(initial_guess),
-                      (fitstars))
-    calib_data_result = params_to_calib_data(fitres.x)
+def do_fit(fitstars, initial_guess, fix_lens_params):
+    p0 = calib_data_to_params(initial_guess, fix_lens_params)
+    fitres = minimize(calc_chi2, p0, (fitstars, fix_lens_params,
+                                      initial_guess))
+    calib_data_result = params_to_calib_data(fitres.x, initial_guess,
+                                             fix_lens_params)
     fname = "fit_" + "_".join([f"{camid}" for camid in cams_to_fit]) + ".json"
     if not os.path.exists(output_data_dir):
         os.makedirs(output_data_dir)
@@ -331,30 +342,48 @@ def do_fit(fitstars):
     return calib_data_result
 
 
-def extract_additional_fitstars(fitstars):
+def extract_additional_fitstars(calib_data, fitstars):
     additional_fitstars = set(fitstars)
     for file in second_pass_files:
         datetime, camid = info_from_file(file)
         if camid not in cams_to_fit:
             continue
-        cam = cam_by_camid(calib_data_result, camid)
+        cam = cam_by_camid(calib_data, camid)
         org_img = cv2.imread(os.path.join(image_input_dir, file))
         detected_stars = detect_stars(cam, org_img, None)
         res = match_stars(cam, None, datetime, detected_stars)
         additional_fitstars.update(res)
     return list(additional_fitstars)
-    
+
+
+def analyze_residuals_stacked(fitstars, calib_data, residual_scale=10):
+    plotimg = np.zeros((*in_size, 3))
+    for camid, time, star, (px, py) in fitstars:
+        if camid not in cams_to_fit:
+            continue
+        cam = cam_by_camid(calib_data, camid)
+        spos = calculate_star_pos(df.loc[star], load.timescale().utc(*time))
+        spos = vec_to_pixel(cam, spos)
+        cv2.arrowedLine(plotimg, (px, py),
+                        (px + (spos[0] - px)*residual_scale,
+                         py + (spos[1] - py)*residual_scale), (255, 0, 0), 1)
+        cv2.circle(plotimg, spos, 5, (0, 0, 255))
+    cv2.imshow("stacked residuals", plotimg)
+    cv2.waitKey()
+    cv2.destroyAllWindows()
+
 
 #%%
-show(cam_by_camid(initial_guess, cam_to_show), True)
+show(cam_by_camid(initial_guess, cam_to_show), residuals_only=True)
 #%%
-calib_data_result = do_fit(fitstars)
+calib_data_result = do_fit(fitstars, initial_guess, fix_lens_params=True)
 #%%
-show(cam_by_camid(calib_data_result, cam_to_show), False)
+show(cam_by_camid(calib_data_result, cam_to_show), residuals_only=True)
 #%%
-additional_fitstars = extract_additional_fitstars(fitstars)
+additional_fitstars = extract_additional_fitstars(calib_data_result, fitstars)
 #%%
-calib_data_final = do_fit(additional_fitstars)
+calib_data_final = do_fit(additional_fitstars, calib_data_result, fix_lens_params=False)
 #%%
-show(cam_by_camid(calib_data_final, cam_to_show), False)
-
+show(cam_by_camid(calib_data_final, cam_to_show), residuals_only=True)
+#%%
+analyze_residuals_stacked(additional_fitstars, calib_data_final)
