@@ -6,7 +6,7 @@ from skyfield.api import Star, load, wgs84
 from skyfield.data import hipparcos
 import numpy as np
 from scipy.optimize import minimize
-from json import dump
+import json
 import os
 
 # +y is north, +x, is east
@@ -338,7 +338,7 @@ def do_fit(fitstars, initial_guess, fix_lens_params):
     if not os.path.exists(output_data_dir):
         os.makedirs(output_data_dir)
     with open(os.path.join(output_data_dir, fname), 'w') as outfile:
-        dump(calib_data_result, outfile, indent=6)
+        json.dump(calib_data_result, outfile, indent=6)
     return calib_data_result
 
 
@@ -372,6 +372,11 @@ def analyze_residuals_stacked(fitstars, calib_data, residual_scale=10):
     cv2.waitKey()
     cv2.destroyAllWindows()
 
+
+def load_fit_results():
+    fname = "fit_" + "_".join([f"{camid}" for camid in cams_to_fit]) + ".json"
+    with open(os.path.join(output_data_dir, fname), 'r') as infile:
+        return json.loads(infile.read())
 
 #%%
 show(cam_by_camid(initial_guess, cam_to_show), residuals_only=True)
