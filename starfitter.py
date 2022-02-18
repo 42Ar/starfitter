@@ -80,8 +80,8 @@ detector_settings = {
     1: {"region_x": (0, 1), "region_y": (0, 0.5), "filter_size": 7, "threshold": 10},
     2: {"region_x": (0, 1), "region_y": (0, 0.6), "filter_size": 7, "threshold": 15}
 }
-cams_to_fit = [1]
-cam_to_show = 1
+cams_to_fit = [2]
+cam_to_show = 2
 f = load.open(hipparcos.URL)
 df = hipparcos.load_dataframe(f)
 df = df[df['magnitude'] <= 3]
@@ -109,8 +109,8 @@ def Rx(phi):
 
 def pixel_to_vec(cam, px, py): 
     fov = cam["fov"]
-    x = 2*px/in_size[1] - 1
-    y = 2*py/in_size[0] - 1
+    x = 2*px/(in_size[1] - 1) - 1
+    y = 2*py/(in_size[0] - 1) - 1
     y = y*fov[1]/fov[0]
     if poly_order >= 2:
        r = np.sqrt(x**2 + y**2)
@@ -133,8 +133,8 @@ def vec_to_pixel(cam, v):
                      np.real(root) > 0))
         x, y = x*r/r_corr, y*r/r_corr
     y = y*fov[0]/fov[1]
-    px = in_size[1]*(x + 1)/2
-    py = in_size[0]*(y + 1)/2
+    px = (in_size[1] - 1)*(x + 1)/2
+    py = (in_size[0] - 1)*(y + 1)/2
     return round(px), round(py)
 
 
@@ -179,8 +179,8 @@ def detect_stars(cam, org_img, img):
     rx = settings["region_x"]
     ry = settings["region_y"]
     hsv = cv2.cvtColor(org_img, cv2.COLOR_BGR2HSV)
-    hsv = hsv[round(ry[0]*org_img.shape[0]):round(ry[1]*org_img.shape[0]),
-              round(rx[0]*org_img.shape[1]):round(rx[1]*org_img.shape[1]), 2]
+    hsv = hsv[round(ry[0]*(org_img.shape[0] - 1)):1 + round(ry[1]*(org_img.shape[0] - 1)),
+              round(rx[0]*(org_img.shape[1] - 1)):1 + round(rx[1]*(org_img.shape[1] - 1)), 2]
     hsv = cv2.subtract(hsv, cv2.medianBlur(hsv, settings["filter_size"]))
     params = cv2.SimpleBlobDetector_Params()
     params.minThreshold = settings["threshold"]
@@ -198,10 +198,10 @@ def detect_stars(cam, org_img, img):
     stars = cv2.SimpleBlobDetector_create(params).detect(hsv)
     res = []
     for star in stars:
-        x = star.pt[0] - round(rx[0]*org_img.shape[1])
-        y = star.pt[1] - round(ry[0]*org_img.shape[0])
-        x = round(x/org_img.shape[1]*in_size[1])
-        y = round(y/org_img.shape[0]*in_size[0])
+        x = star.pt[0] - round(rx[0]*(org_img.shape[1] - 1))
+        y = star.pt[1] - round(ry[0]*(org_img.shape[0] - 1))
+        x = round(x/(org_img.shape[1] - 1)*(in_size[1] - 1))
+        y = round(y/(org_img.shape[0] - 1)*(in_size[0] - 1))
         res.append((x, y))
         if img is not None:
             cv2.circle(img, (x, y), 5, (0, 0, 255))
