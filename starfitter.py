@@ -7,6 +7,7 @@ from skyfield.data import hipparcos
 import numpy as np
 from scipy.optimize import minimize
 import json
+from datetime import datetime
 import os
 
 # +y is north, +x, is east
@@ -35,7 +36,15 @@ initial_guess = [
     {"id": 2, "fov": fov, "c_2": c_2, "c_3": c_3,
      "az": np.pi*150/180, "alt": np.pi*17/180, "roll": 0},
     {"id": 3, "fov": fov, "c_2": c_2, "c_3": c_3,
-     "az": np.pi*220/180, "alt": np.pi*17/180, "roll": 0}
+     "az": np.pi*220/180, "alt": np.pi*17/180, "roll": 0},
+    {"id": 4, "fov": fov, "c_2": c_2, "c_3": c_3,
+     "az": np.pi*290/180, "alt": np.pi*17/180, "roll": 0},
+    {"id": 5, "fov": fov, "c_2": c_2, "c_3": c_3,
+     "az": np.pi*10/180, "alt": np.pi*20/180, "roll": 0},
+    {"id": 6, "fov": fov, "c_2": c_2, "c_3": c_3,
+     "az": np.pi*80/180, "alt": np.pi*60/180, "roll": 0},
+    {"id": 7, "fov": fov, "c_2": c_2, "c_3": c_3,
+     "az": 4.559, "alt": 1.1144, "roll": 0}
 ]
 fitstars = [
     (1, (2022, 2, 12, 21, 15, 0), 72105, (323, 193)),
@@ -55,7 +64,22 @@ fitstars = [
     (2, (2022, 2, 13, 1, 25, 0), 65474, (598, 378)),
 
     (3, (2022, 2, 13, 18, 40, 1), 9884, (612, 82)),
-    (3, (2022, 2, 13, 18, 40, 1), 8903, (637, 121))
+    (3, (2022, 2, 13, 18, 40, 1), 8903, (637, 121)),
+    
+    (4, (2022, 2, 13, 18, 50, 1), 102098, (757, 162)),
+    (4, (2022, 2, 13, 18, 50, 1), 100453, (791, 225)),
+    (4, (2022, 2, 13, 18, 50, 1), 113963, (318, 382)),
+    
+    (5, (2022, 2, 13, 18, 45, 1), 85670, (400, 124)),
+    (5, (2022, 2, 13, 18, 45, 1), 91262, (245, 264)),
+    
+    (6, (2022, 2, 13, 18, 45, 1), 54061, (360, 318)),
+    (6, (2022, 2, 13, 18, 45, 1), 53910, (387, 376)),
+    (6, (2022, 2, 13, 18, 45, 1), 67301, (128, 470)),
+    
+    (7, (2022, 2, 13, 18, 45, 1), 14576, (267, 312)),
+    (7, (2022, 2, 13, 18, 45, 1), 10064, (317, 456)),
+    (7, (2022, 2, 13, 18, 45, 1), 5447, (442, 528)),
 ]
 second_pass_files = [
     "2022_02_12_20_10_01_1.jpg",
@@ -94,7 +118,66 @@ second_pass_files = [
     "2022_02_13_21_35_00_3.jpg",
     "2022_02_13_22_10_01_3.jpg",
     "2022_02_13_22_15_01_3.jpg",
-    "2022_02_13_22_40_01_3.jpg"
+    "2022_02_13_22_40_01_3.jpg",
+    
+    "2022_02_13_18_05_01_4.jpg",
+    "2022_02_13_18_30_00_4.jpg",
+    "2022_02_13_18_55_01_4.jpg",
+    "2022_02_13_19_05_01_4.jpg",
+    "2022_02_13_19_15_01_4.jpg",
+    "2022_02_13_19_25_01_4.jpg",
+    "2022_02_13_19_30_01_4.jpg",
+    "2022_02_13_19_35_00_4.jpg",
+    "2022_02_13_19_40_01_4.jpg",
+    "2022_02_13_19_45_01_4.jpg",
+    "2022_02_13_19_50_00_4.jpg",
+    "2022_02_13_22_30_00_4.jpg",
+    
+    "2022_02_13_18_45_01_5.jpg",
+    "2022_02_13_18_55_01_5.jpg",
+    "2022_02_13_19_00_01_5.jpg",
+    "2022_02_13_19_05_00_5.jpg",
+    "2022_02_13_19_10_00_5.jpg",
+    "2022_02_13_19_15_01_5.jpg",
+    "2022_02_13_19_25_00_5.jpg",
+    "2022_02_13_19_30_01_5.jpg",
+    "2022_02_13_19_35_00_5.jpg",
+    "2022_02_13_19_40_00_5.jpg",
+    "2022_02_13_19_45_00_5.jpg",
+    "2022_02_13_19_50_00_5.jpg",
+    "2022_02_13_21_30_00_5.jpg",
+    "2022_02_13_21_55_00_5.jpg",
+    
+    "2022_02_13_18_35_00_6.jpg",
+    "2022_02_13_18_40_01_6.jpg",
+    "2022_02_13_18_45_01_6.jpg",
+    "2022_02_13_18_50_01_6.jpg",
+    "2022_02_13_18_55_01_6.jpg",
+    "2022_02_13_19_00_01_6.jpg",
+    "2022_02_13_19_05_00_6.jpg",
+    "2022_02_13_19_10_00_6.jpg",
+    "2022_02_13_19_15_01_6.jpg",
+    "2022_02_13_19_20_00_6.jpg",
+    "2022_02_13_19_25_00_6.jpg",
+    "2022_02_13_19_30_01_6.jpg",
+    "2022_02_13_19_35_00_6.jpg",
+    "2022_02_13_19_40_00_6.jpg",
+    "2022_02_13_19_45_01_6.jpg",
+    "2022_02_13_19_50_00_6.jpg",
+    
+    "2022_02_13_18_55_00_7.jpg",
+    "2022_02_13_19_05_01_7.jpg",
+    "2022_02_13_19_10_01_7.jpg",
+    "2022_02_13_19_15_01_7.jpg",
+    "2022_02_13_19_20_00_7.jpg",
+    "2022_02_13_19_25_00_7.jpg",
+    "2022_02_13_19_30_00_7.jpg",
+    "2022_02_13_19_35_00_7.jpg",
+    "2022_02_13_19_40_00_7.jpg",
+    "2022_02_13_19_45_01_7.jpg",
+    "2022_02_13_19_50_00_7.jpg",
+    "2022_02_13_19_55_00_7.jpg",
+    "2022_02_13_20_00_00_7.jpg",
 ]
 detector_settings = {
     "min_area": 4,
@@ -102,16 +185,20 @@ detector_settings = {
     1: {"region_x": (0, 1), "region_y": (0, 0.5), "filter_size": 7, "threshold": 10},
     2: {"region_x": (0, 1), "region_y": (0, 0.6), "filter_size": 7, "threshold": 15},
     3: {"region_x": (0, 1), "region_y": (0, 0.75), "filter_size": 7, "threshold": 10, "ignore": [(220, 175, 324, 533)]},
-    4: {"region_x": (0, 1), "region_y": (0, 0.6), "filter_size": 7, "threshold": 10}
+    4: {"region_x": (0, 1), "region_y": (0, 0.6), "filter_size": 7, "threshold": 10},
+    5: {"region_x": (0, 1), "region_y": (0, 0.6), "filter_size": 7, "threshold": 10},
+    6: {"region_x": (0, 1), "region_y": (0, 1), "filter_size": 7, "threshold": 10},
+    7: {"region_x": (0, 1), "region_y": (0, 1), "filter_size": 7, "threshold": 10}
 }
-cams_to_fit = [4]
-cam_to_show = 4
+cams_to_fit = [7]
+cam_to_show = 7
 f = load.open(hipparcos.URL)
 df = hipparcos.load_dataframe(f)
 df = df[df['magnitude'] <= 3]
 observer = wgs84.latlon(*latlon)
 planets = load('de421.bsp')
 earth = planets['earth']
+moon = planets['moon']
 
 
 def get_matrix(cam):
@@ -164,7 +251,10 @@ def vec_to_pixel(cam, v):
 
 def calculate_star_pos(star_data, t):
     star = Star.from_dataframe(star_data)
-    apparent = (earth + observer).at(t).observe(star).apparent()
+    return calculate_obj_pos(star, t)
+
+def calculate_obj_pos(obj, t):
+    apparent = (earth + observer).at(t).observe(obj).apparent()
     alt, az, distance = apparent.altaz()
     az, alt = az.radians, alt.radians
     x = np.sin(az)*np.cos(alt)
@@ -175,6 +265,9 @@ def calculate_star_pos(star_data, t):
 
 def plot_stars(cam, img, datetime):
     t = load.timescale().utc(*datetime)
+    px, py = vec_to_pixel(cam, calculate_obj_pos(moon, t))
+    if px >= 0 and py >= 0 and px < in_size[1] and py < in_size[0]:
+        cv2.circle(img, (px, py), 50, (255, 255, 255))
     for i, star_data in df.iterrows():
         px, py = vec_to_pixel(cam, calculate_star_pos(star_data, t))
         if px >= 0 and py >= 0 and px < in_size[1] and py < in_size[0]:
@@ -226,9 +319,10 @@ def detect_stars(cam, org_img, img):
         y = star.pt[1] - round(ry[0]*(org_img.shape[0] - 1))
         x = round(x/(org_img.shape[1] - 1)*(in_size[1] - 1))
         y = round(y/(org_img.shape[0] - 1)*(in_size[0] - 1))
-        if any(x > ignore_rect[0] and y > ignore_rect[1] and
-               x < ignore_rect[2] and y < ignore_rect[3]
-               for ignore_rect in settings["ignore"]):
+        if ("ignore" in settings and
+            any(x > ignore_rect[0] and y > ignore_rect[1] and
+                x < ignore_rect[2] and y < ignore_rect[3]
+                for ignore_rect in settings["ignore"])):
             continue
         res.append((x, y))
         if img is not None:
@@ -301,7 +395,7 @@ def show(cam, residuals_only=True):
                     cv2.destroyAllWindows()
                     return
                 if key == ord("f"):
-                    print(f'"{file.split["/"][-1]}",')
+                    print(f'"{file.split("/")[-1]}",')
                     break
                 if key == ord("n"):
                     break
@@ -346,25 +440,35 @@ def calib_data_to_params(calib_data, fix_lens_params):
     return params
 
 
-def calc_chi2(params, fitstars, fix_lens_params, orig_calib_data):
+def calc_chi2(params, fitstars, fix_lens_params, orig_calib_data, ret_meta=False):
     calib_data = params_to_calib_data(params, orig_calib_data, fix_lens_params)
-    chi2 = 0
+    chi2, dsum, n_stars = 0, 0, 0
     for camid, time, star, (px, py) in fitstars:
         if camid not in cams_to_fit:
             continue
         cam = cam_by_camid(calib_data, camid)
         ppos = pixel_to_vec(cam, px, py)
         spos = calculate_star_pos(df.loc[star], load.timescale().utc(*time))
-        chi2 += np.linalg.norm(ppos - spos)**2
-    return chi2
+        d = np.linalg.norm(ppos - spos)
+        chi2 += d**2
+        dsum += d
+        n_stars += 1
+    return chi2 if not ret_meta else (2*np.arcsin(dsum/n_stars/2), n_stars)
 
 
 def do_fit(fitstars, initial_guess, fix_lens_params):
     p0 = calib_data_to_params(initial_guess, fix_lens_params)
-    fitres = minimize(calc_chi2, p0, (fitstars, fix_lens_params,
-                                      initial_guess))
+    args = (fitstars, fix_lens_params, initial_guess)
+    start = str(datetime.now())
+    fitres = minimize(calc_chi2, p0, args)
+    end = str(datetime.now())
+    mean_residual, n_stars = calc_chi2(fitres.x, *args, True)
     calib_data_result = params_to_calib_data(fitres.x, initial_guess,
                                              fix_lens_params)
+    for cam in calib_data_result:
+        cam["meta"] = {"mean_residual": mean_residual,
+                       "n_stars": n_stars,
+                       "start": start, "end": end}
     fname = "fit_" + "_".join([f"{camid}" for camid in cams_to_fit]) + ".json"
     if not os.path.exists(output_data_dir):
         os.makedirs(output_data_dir)
@@ -389,6 +493,8 @@ def extract_additional_fitstars(calib_data, fitstars):
 
 def analyze_residuals_stacked(fitstars, calib_data, residual_scale=10):
     plotimg = np.zeros((*in_size, 3))
+    cv2.putText(plotimg, "stacked residual vectors x10", (10, 25),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 1)
     for camid, time, star, (px, py) in fitstars:
         if camid not in cams_to_fit:
             continue
@@ -397,10 +503,14 @@ def analyze_residuals_stacked(fitstars, calib_data, residual_scale=10):
         spos = vec_to_pixel(cam, spos)
         cv2.arrowedLine(plotimg, (px, py),
                         (px + (spos[0] - px)*residual_scale,
-                         py + (spos[1] - py)*residual_scale), (255, 0, 0), 1)
+                         py + (spos[1] - py)*residual_scale), (255, 255, 0), 1)
         cv2.circle(plotimg, spos, 5, (0, 0, 255))
+    cv2.imwrite("stacked_residuals.jpeg", plotimg)
     cv2.imshow("stacked residuals", plotimg)
-    cv2.waitKey()
+    while True:
+        key = cv2.waitKey(0)
+        if key == ord("q"):
+            break
     cv2.destroyAllWindows()
 
 
@@ -410,7 +520,7 @@ def load_fit_results():
         return json.loads(infile.read())
 
 #%%
-show(cam_by_camid(initial_guess, cam_to_show), residuals_only=True)
+show(cam_by_camid(initial_guess, cam_to_show), residuals_only=False)
 #%%
 calib_data_result = do_fit(fitstars, initial_guess, fix_lens_params=True)
 #%%
