@@ -18,7 +18,7 @@ in_size = (1080//2, 1920//2)
 roll = 0
 year = 2022
 month = 2
-day = 12
+day = 13
 image_dates = ([(day, h) for h in range(18, 24)] +
                [(day + 1, h) for h in range(6)])
 image_input_dir = "fit_images"
@@ -33,7 +33,9 @@ initial_guess = [
     {"id": 1, "fov": fov, "c_2": c_2, "c_3": c_3,
      "az": np.pi*75/180, "alt": np.pi*15/180, "roll": 0},
     {"id": 2, "fov": fov, "c_2": c_2, "c_3": c_3,
-     "az": np.pi*150/180, "alt": np.pi*17/180, "roll": 0}
+     "az": np.pi*150/180, "alt": np.pi*17/180, "roll": 0},
+    {"id": 3, "fov": fov, "c_2": c_2, "c_3": c_3,
+     "az": np.pi*220/180, "alt": np.pi*17/180, "roll": 0}
 ]
 fitstars = [
     (1, (2022, 2, 12, 21, 15, 0), 72105, (323, 193)),
@@ -51,6 +53,9 @@ fitstars = [
     (2, (2022, 2, 13, 1, 25, 0), 63608, (627, 113)),
     (2, (2022, 2, 13, 1, 25, 0), 61941, (708, 248)),
     (2, (2022, 2, 13, 1, 25, 0), 65474, (598, 378)),
+
+    (3, (2022, 2, 13, 18, 40, 1), 9884, (612, 82)),
+    (3, (2022, 2, 13, 18, 40, 1), 8903, (637, 121))
 ]
 second_pass_files = [
     "2022_02_12_20_10_01_1.jpg",
@@ -65,23 +70,42 @@ second_pass_files = [
     "2022_02_13_01_40_00_1.jpg",
     "2022_02_13_01_50_00_1.jpg",
     "2022_02_13_02_40_01_1.jpg",
-    
+
     "2022_02_12_20_30_01_2.jpg",
     "2022_02_12_20_40_01_2.jpg",
     "2022_02_12_20_50_00_2.jpg",
     "2022_02_12_22_00_01_2.jpg",
     "2022_02_12_23_00_00_2.jpg",
     "2022_02_12_23_10_00_2.jpg",
-    "2022_02_12_23_50_00_2.jpg"
+    "2022_02_12_23_50_00_2.jpg",
+
+    "2022_02_13_18_40_01_3.jpg",
+    "2022_02_13_18_45_01_3.jpg",
+    "2022_02_13_18_50_01_3.jpg",
+    "2022_02_13_19_00_00_3.jpg",
+    "2022_02_13_19_05_01_3.jpg",
+    "2022_02_13_19_10_01_3.jpg",
+    "2022_02_13_19_15_02_3.jpg",
+    "2022_02_13_19_30_00_3.jpg",
+    "2022_02_13_19_35_00_3.jpg",
+    "2022_02_13_19_40_00_3.jpg",
+    "2022_02_13_19_45_00_3.jpg",
+    "2022_02_13_19_50_01_3.jpg",
+    "2022_02_13_21_35_00_3.jpg",
+    "2022_02_13_22_10_01_3.jpg",
+    "2022_02_13_22_15_01_3.jpg",
+    "2022_02_13_22_40_01_3.jpg"
 ]
 detector_settings = {
     "min_area": 4,
     "match_dist": 20,
     1: {"region_x": (0, 1), "region_y": (0, 0.5), "filter_size": 7, "threshold": 10},
-    2: {"region_x": (0, 1), "region_y": (0, 0.6), "filter_size": 7, "threshold": 15}
+    2: {"region_x": (0, 1), "region_y": (0, 0.6), "filter_size": 7, "threshold": 15},
+    3: {"region_x": (0, 1), "region_y": (0, 0.75), "filter_size": 7, "threshold": 10, "ignore": [(220, 175, 324, 533)]},
+    4: {"region_x": (0, 1), "region_y": (0, 0.6), "filter_size": 7, "threshold": 10}
 }
-cams_to_fit = [2]
-cam_to_show = 2
+cams_to_fit = [4]
+cam_to_show = 4
 f = load.open(hipparcos.URL)
 df = hipparcos.load_dataframe(f)
 df = df[df['magnitude'] <= 3]
@@ -202,6 +226,10 @@ def detect_stars(cam, org_img, img):
         y = star.pt[1] - round(ry[0]*(org_img.shape[0] - 1))
         x = round(x/(org_img.shape[1] - 1)*(in_size[1] - 1))
         y = round(y/(org_img.shape[0] - 1)*(in_size[0] - 1))
+        if any(x > ignore_rect[0] and y > ignore_rect[1] and
+               x < ignore_rect[2] and y < ignore_rect[3]
+               for ignore_rect in settings["ignore"]):
+            continue
         res.append((x, y))
         if img is not None:
             cv2.circle(img, (x, y), 5, (0, 0, 255))
@@ -272,6 +300,9 @@ def show(cam, residuals_only=True):
                 if key == ord("q"):
                     cv2.destroyAllWindows()
                     return
+                if key == ord("f"):
+                    print(f'"{file.split["/"][-1]}",')
+                    break
                 if key == ord("n"):
                     break
     cv2.destroyAllWindows()
@@ -383,7 +414,7 @@ show(cam_by_camid(initial_guess, cam_to_show), residuals_only=True)
 #%%
 calib_data_result = do_fit(fitstars, initial_guess, fix_lens_params=True)
 #%%
-show(cam_by_camid(calib_data_result, cam_to_show), residuals_only=True)
+show(cam_by_camid(calib_data_result, cam_to_show), residuals_only=False)
 #%%
 additional_fitstars = extract_additional_fitstars(calib_data_result, fitstars)
 #%%
